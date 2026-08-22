@@ -1,289 +1,284 @@
-============================================================
-MLOps Training 2026/2027
-Task 1 - Get the Data Into a Database
-============================================================
+# MLOps Training 2026/2027 — Task 1
 
-Project:
-Olist E-Commerce Dataset
+## Get the Data Into a Database
 
-Database:
-PostgreSQL
+A hands-on MLOps task focused on understanding the Olist e-commerce dataset, loading the data into a relational PostgreSQL database, and validating the database and table relationships.
 
-Container:
-Docker
+**Status: Completed**
 
-Status:
-COMPLETED
+---
 
+## Project Overview
 
-============================================================
-1. TASK OBJECTIVE
-============================================================
+The objective of Task 1 was to:
 
-The goal of Task 1 was to understand the Olist dataset, load the
-CSV files into a relational PostgreSQL database, test the database
-connection, run SQL queries and joins, and validate the relationships
-between the main tables.
+- Understand the Olist dataset and its relationships.
+- Load the CSV files into PostgreSQL.
+- Run PostgreSQL locally using Docker.
+- Automate data ingestion using Python.
+- Execute SQL queries and JOIN operations.
+- Validate the relationships between the main tables.
+- Understand the future machine learning problem.
 
-The task was intentionally limited to data ingestion and database
-validation.
+EDA and Machine Learning were **not required** for this task.
 
-No EDA or Machine Learning model was required at this stage.
+---
 
+## Project Structure
 
-============================================================
-2. PROJECT STRUCTURE
-============================================================
-
-The project is located at:
-
-~/Dev/projects/Machine_Learning/olist_postgres_p1
-
-
-Project structure:
-
+```text
 olist_postgres_p1/
-|
-+-- archive/
-|   +-- olist_customers_dataset.csv
-|   +-- olist_geolocation_dataset.csv
-|   +-- olist_order_items_dataset.csv
-|   +-- olist_order_payments_dataset.csv
-|   +-- olist_order_reviews_dataset.csv
-|   +-- olist_orders_dataset.csv
-|   +-- olist_products_dataset.csv
-|   +-- olist_sellers_dataset.csv
-|   +-- product_category_name_translation.csv
-|
-+-- scripts/
-|   +-- ingest.py
-|
-+-- sql/
-|   +-- validation.sql
-|
-+-- .venv/
+│
+├── archive/
+│   └── CSV dataset files
+│
+├── scripts/
+│   └── ingest.py
+│
+├── sql/
+│   └── validation.sql
+│
+├── .gitignore
+├── MLOps_Task1.pdf
+├── Olist_Dataset_Introduction.pdf
+└── README.md
+```
 
+> The raw CSV dataset is intentionally excluded from GitHub through `.gitignore`.
 
-============================================================
-3. DATASET OVERVIEW
-============================================================
+---
 
-The dataset is an e-commerce dataset from Olist, a Brazilian
-e-commerce platform.
+## Dataset
 
-The dataset is divided into multiple related CSV files.
+The project uses the **Brazilian E-Commerce Public Dataset by Olist**.
 
-The main entities are:
+The dataset contains the following tables:
 
-1. Orders
-2. Customers
-3. Order Items
-4. Payments
-5. Reviews
-6. Products
-7. Sellers
-8. Geolocation
-9. Product Category Translation
+| Table | Description |
+|---|---|
+| `customers` | Customer information |
+| `orders` | Order information and timestamps |
+| `order_items` | Products contained in each order |
+| `order_payments` | Payment information |
+| `order_reviews` | Customer reviews |
+| `products` | Product information |
+| `sellers` | Seller information |
+| `geolocation` | Brazilian geographic information |
+| `product_category_translation` | Portuguese-to-English category translation |
 
+---
 
-============================================================
-4. TABLE RELATIONSHIPS
-============================================================
+## Table Relationships
 
-The main relationships are based on the following identifiers:
+The main identifiers used to connect the tables are:
 
-order_id
-customer_id
-product_id
-seller_id
+- `order_id`
+- `customer_id`
+- `product_id`
+- `seller_id`
 
+### Relationship Diagram
 
-Relationship diagram:
+```text
+                     ┌─────────────────┐
+                     │    customers    │
+                     ├─────────────────┤
+                     │ customer_id     │
+                     └────────┬────────┘
+                              │
+                              │ customer_id
+                              ▼
+                     ┌────────┴────────┐
+                     │     orders      │
+                     ├─────────────────┤
+                     │ order_id        │
+                     │ customer_id     │
+                     └──────┬─────┬────┘
+                            │     │
+                 order_id   │     │ order_id
+                            │     │
+                 ┌──────────▼─┐ ┌─▼────────────────┐
+                 │order_items │ │  order_payments  │
+                 ├────────────┤ └──────────────────┘
+                 │ order_id   │
+                 │ product_id │
+                 │ seller_id  │
+                 └──────┬─────┘
+                        │
+                ┌───────┴────────┐
+                │                │
+          product_id         seller_id
+                │                │
+                ▼                ▼
+        ┌─────────────┐   ┌─────────────┐
+        │  products   │   │   sellers   │
+        └─────────────┘   └─────────────┘
+```
 
-                     +----------------+
-                     |   customers    |
-                     |----------------|
-                     | customer_id    |
-                     +-------+--------+
-                             |
-                             | customer_id
-                             |
-                             v
-                     +-------+--------+
-                     |     orders     |
-                     |----------------|
-                     | order_id       |
-                     | customer_id    |
-                     +---+--------+---+
-                         |        |
-              order_id   |        | order_id
-                         |        |
-                         v        v
-                +--------+--+  +--+----------------+
-                |order_items|  |  order_payments   |
-                +-----+-----+  +-------------------+
-                      |
-             +--------+--------+
-             |                 |
-       product_id          seller_id
-             |                 |
-             v                 v
-       +-----+------+    +-----+------+
-       |  products  |    |  sellers   |
-       +------------+    +------------+
+Reviews are connected to orders through:
 
-
-Reviews are also connected to orders through:
-
+```text
 orders.order_id
-        |
-        v
+       │
+       ▼
 order_reviews.order_id
+```
 
+Product category translation:
 
-Geolocation is related to geographic ZIP code prefixes.
-
-Product category translation is related to:
-
+```text
 products.product_category_name
-        |
-        v
+               │
+               ▼
 product_category_translation.product_category_name
+```
 
+Geolocation data is related to geographic ZIP code prefixes.
 
-============================================================
-5. BUSINESS / ML PROBLEM
-============================================================
+---
 
-The future machine learning problem is to predict whether an order
-will be delivered late or on time.
+## Future Machine Learning Problem
 
-The target can be derived from:
+The future ML problem is a **binary classification task**:
 
-actual delivery date
-        versus
-estimated delivery date
+> Predict whether an order will be delivered late or on time.
 
+The target can be conceptually defined as:
 
-Conceptually:
+```text
+Actual delivery date > Estimated delivery date
+                    │
+                    ▼
+                 LATE = 1
+```
 
-actual_delivery_date > estimated_delivery_date
-                |
-                v
-             LATE = 1
+```text
+Actual delivery date <= Estimated delivery date
+                    │
+                    ▼
+               ON_TIME = 0
+```
 
+### Data Leakage Warning
 
-actual_delivery_date <= estimated_delivery_date
-                |
-                v
-           ON_TIME = 0
+The actual delivery date must **not** be used as an input feature when making a prediction because it is future information.
 
+It can be used to create the training target, but it must not be used as a predictive feature.
 
-Important:
+---
 
-The actual delivery date must NOT be used as a feature when making
-the prediction because it is future information.
+## Technologies Used
 
-It can be used to create the training target, but not as an input
-feature for the model.
+- Python
+- Pandas
+- SQLAlchemy
+- Psycopg2
+- PostgreSQL
+- Docker
+- WSL Ubuntu
+- SQL
+- Git / GitHub
 
+---
 
-============================================================
-6. ENVIRONMENT
-============================================================
+## Environment
 
-The project was executed inside WSL Ubuntu.
+The project was developed inside **WSL Ubuntu**.
 
-Python environment:
+### Python Environment
 
-.venv
+A dedicated virtual environment was created:
 
-Python packages used for ingestion:
+```text
+.venv/
+```
 
+Installed packages include:
+
+```text
 pandas
 SQLAlchemy
 psycopg2-binary
+```
 
+---
 
-PostgreSQL was running inside Docker.
+## PostgreSQL Setup
 
-Docker container:
+PostgreSQL was run using Docker.
 
+### Container
+
+```text
 olist_postgres
+```
 
+### Database
 
-Database:
-
+```text
 olist_db
+```
 
+### User
 
-Database user:
-
+```text
 olist_user
+```
 
+### Port
 
-Port:
-
+```text
 5432
+```
 
+The database was successfully verified with:
 
-============================================================
-7. DOCKER DATABASE
-============================================================
-
-The PostgreSQL container was verified using:
-
+```bash
 docker ps
+```
 
+and a PostgreSQL connection test.
 
-Result:
+---
 
-olist_postgres
-Status: Up
-Port: 5432 -> 5432
+## Data Ingestion
 
+Data ingestion was automated using:
 
-This confirmed that PostgreSQL was running locally and available
-for the ingestion process.
-
-
-============================================================
-8. INGESTION PROCESS
-============================================================
-
-The ingestion process was automated using:
-
+```text
 scripts/ingest.py
+```
 
-
-The script:
+The ingestion script:
 
 1. Connects to PostgreSQL.
-2. Tests the database connection.
+2. Verifies the database connection.
 3. Checks that the CSV files exist.
-4. Reads each CSV file.
-5. Converts columns to appropriate data types.
+4. Loads the CSV files using Pandas.
+5. Converts important columns to appropriate data types.
 6. Loads the data into PostgreSQL.
 7. Verifies the number of rows after insertion.
-8. Reports the result for every table.
+8. Reports the loading status of every table.
 
+### Run Ingestion
 
-The ingestion command:
-
+```bash
 python scripts/ingest.py
+```
 
+Successful execution ends with:
 
-Final result:
-
+```text
 All tables loaded successfully.
+```
 
+---
 
-============================================================
-9. DATABASE TABLES
-============================================================
+## Database Tables
 
-The database contains 9 tables:
+The PostgreSQL database contains 9 tables:
 
+```text
 customers
 geolocation
 order_items
@@ -293,386 +288,342 @@ orders
 product_category_translation
 products
 sellers
+```
 
+---
 
-============================================================
-10. ROW COUNTS
-============================================================
+## Dataset Row Counts
 
-The final row counts in PostgreSQL were:
+The final row counts loaded into PostgreSQL are:
 
-customers
-99,441
+| Table | Rows |
+|---|---:|
+| `customers` | 99,441 |
+| `geolocation` | 1,000,163 |
+| `order_items` | 112,650 |
+| `order_payments` | 103,886 |
+| `order_reviews` | 99,224 |
+| `orders` | 99,441 |
+| `products` | 32,951 |
+| `sellers` | 3,095 |
+| `product_category_translation` | 71 |
 
-geolocation
-1,000,163
+All loaded row counts were verified after ingestion.
 
-order_items
-112,650
+---
 
-order_payments
-103,886
+## SQL Validation
 
-order_reviews
-99,224
+Database validation was implemented in:
 
-orders
-99,441
-
-products
-32,951
-
-sellers
-3,095
-
-product_category_translation
-71
-
-
-All row counts matched the source CSV files.
-
-
-============================================================
-11. SQL VALIDATION
-============================================================
-
-A validation file was created:
-
+```text
 sql/validation.sql
+```
 
+It checks:
 
-It was executed using:
+- Available database tables.
+- Table row counts.
+- Basic `SELECT` queries.
+- JOIN operations.
+- Relationship integrity.
+- Duplicate review IDs.
+- Delivery statistics.
 
+### Run Validation
+
+From the project root:
+
+```bash
 docker exec -i olist_postgres psql \
   -U olist_user \
   -d olist_db \
   < sql/validation.sql
+```
 
+---
 
-The validation script checks:
+## Query Testing
 
-- Existing tables
-- Row counts
-- Basic SELECT queries
-- JOIN operations
-- Relationship integrity
-- Review ID duplication
-- Delivery statistics
+### Basic Query
 
-
-============================================================
-12. QUERY TEST
-============================================================
-
-A basic query was tested:
-
+```sql
 SELECT *
 FROM orders
 LIMIT 5;
+```
 
+This successfully returned order records.
 
-The query successfully returned order records.
+---
 
+## JOIN Validation
 
-============================================================
-13. JOIN TEST
-============================================================
+### Orders + Customers
 
-A JOIN between orders and customers was tested:
+```sql
+SELECT
+    o.order_id,
+    o.order_status,
+    o.order_purchase_timestamp,
+    c.customer_city,
+    c.customer_state
+FROM orders AS o
+JOIN customers AS c
+    ON o.customer_id = c.customer_id
+LIMIT 10;
+```
 
-orders
-   |
-   | customer_id
-   v
-customers
+This validated the relationship:
 
+```text
+orders.customer_id
+        │
+        ▼
+customers.customer_id
+```
 
-The query successfully returned:
+### Orders + Order Items
 
-order_id
-order_status
-order_purchase_timestamp
-customer_city
-customer_state
-
-
-This confirmed that the main order/customer relationship works.
-
-
-============================================================
-14. SECOND JOIN TEST
-============================================================
-
-A second JOIN was tested between orders and order_items:
-
-orders
-   |
-   | order_id
-   v
-order_items
-
-
-The query successfully returned:
-
-order_id
-product_id
-seller_id
-price
-freight_value
-
-
-This confirmed another important relationship in the dataset.
-
-
-============================================================
-15. RELATIONSHIP VALIDATION
-============================================================
-
-The following checks were performed.
-
-Orders without customers:
-
-0
-
-
-Order items without orders:
-
-0
-
-
-Order items without products:
-
-0
-
-
-Order items without sellers:
-
-0
-
-
-Payments without orders:
-
-0
-
-
-This means that all tested core relationships are valid.
-
-
-============================================================
-16. DATA QUALITY OBSERVATION
-============================================================
-
-The order_reviews table contains:
-
-Total review rows:
-99,224
-
-Unique review IDs:
-98,410
-
-Duplicate review IDs:
-814
-
-
-This was recorded as a data quality observation.
-
-The duplicate records were NOT deleted during Task 1.
-
-Reason:
-
-Task 1 is focused on ingestion and database validation, not data
-cleaning. Removing records without understanding why the IDs are
-duplicated could change the original dataset.
-
-The issue can be investigated later if it becomes relevant to a
-future task.
-
-
-============================================================
-17. DELIVERY DATA VALIDATION
-============================================================
-
-The validation queries showed:
-
-Delivered orders:
-96,478
-
-
-Delivered orders with an actual delivery date:
-96,470
-
-
-Late delivered orders:
-7,826
-
-
-On-time delivered orders:
-88,644
-
-
-These numbers confirm that the dataset contains enough information
-to define the future classification target.
-
-
-============================================================
-18. DATA FLOW
-============================================================
-
-The complete Task 1 data flow is:
-
-CSV FILES
-   |
-   v
-archive/
-   |
-   v
-Python ingestion script
-scripts/ingest.py
-   |
-   v
-PostgreSQL
-   |
-   v
-olist_db
-   |
-   +----------------------+
-   |                      |
-   v                      v
-SQL Queries          SQL Validation
-                       |
-                       v
+```sql
+SELECT
+    o.order_id,
+    oi.product_id,
+    oi.seller_id,
+    oi.price,
+    oi.freight_value
+FROM orders AS o
+JOIN order_items AS oi
+    ON o.order_id = oi.order_id
+LIMIT 10;
+```
+
+This validated:
+
+```text
+orders.order_id
+       │
+       ▼
+order_items.order_id
+```
+
+---
+
+## Relationship Validation Results
+
+The following integrity checks were performed:
+
+| Check | Result |
+|---|---:|
+| Orders without customers | `0` |
+| Order items without orders | `0` |
+| Order items without products | `0` |
+| Order items without sellers | `0` |
+| Payments without orders | `0` |
+
+The tested core relationships are therefore consistent.
+
+---
+
+## Data Quality Observation
+
+The `order_reviews` table contains:
+
+```text
+Total rows:       99,224
+Unique review_id: 98,410
+Duplicate IDs:       814
+```
+
+The duplicate `review_id` values were intentionally **not removed**.
+
+### Reason
+
+Task 1 focuses on:
+
+- Data ingestion
+- Database storage
+- SQL queries
+- Relationship validation
+
+It does not require data cleaning.
+
+Removing records without understanding why the IDs are duplicated could alter the original dataset.
+
+This issue is therefore documented for possible investigation in a future task.
+
+---
+
+## Delivery Data Validation
+
+The validation queries produced the following results:
+
+| Metric | Count |
+|---|---:|
+| Delivered orders | 96,478 |
+| Delivered orders with actual delivery date | 96,470 |
+| Late delivered orders | 7,826 |
+| On-time delivered orders | 88,644 |
+
+These results confirm that the dataset contains the information required to construct the future delivery-delay classification target.
+
+---
+
+## Data Flow
+
+```text
+             CSV DATA
+                │
+                ▼
+          archive/*.csv
+                │
+                ▼
+       ┌─────────────────┐
+       │  ingest.py      │
+       │ Python / Pandas │
+       └────────┬────────┘
+                │
+                ▼
+       ┌─────────────────┐
+       │   PostgreSQL    │
+       │    olist_db     │
+       └────────┬────────┘
+                │
+        ┌───────┴────────┐
+        │                │
+        ▼                ▼
+   SQL Queries      SQL Validation
+                         │
+                         ▼
                   validation.sql
-                       |
-                       v
-                Verified Database
+                         │
+                         ▼
+                 Verified Database
+```
 
+---
 
-============================================================
-19. WHAT WAS LEARNED
-============================================================
+## Problems Encountered
 
-During this task I learned and practiced:
+### 1. PowerShell Docker Command Formatting
 
-- Docker basics
-- Running PostgreSQL inside Docker
-- Connecting Python to PostgreSQL
-- SQLAlchemy
-- Pandas data ingestion
-- Loading CSV data into relational tables
-- SQL SELECT queries
-- SQL JOIN operations
-- Basic relational data validation
-- Checking row counts
-- Checking missing relationships
-- Understanding primary identifiers
-- Identifying data quality issues
-- Understanding data leakage at a high level
+The initial Docker command used Linux line continuation:
 
+```text
+\
+```
 
-============================================================
-20. PROBLEMS ENCOUNTERED
-============================================================
+inside Windows PowerShell.
 
-Problem 1:
+PowerShell does not use `\` for line continuation, which caused:
 
-The first version of ingest.py failed with:
+```text
+docker: invalid reference format
+```
 
+The PostgreSQL container was then created correctly from WSL, where the Linux syntax is valid.
+
+---
+
+### 2. WSL and Windows Project Path
+
+The Windows path:
+
+```text
+D:\Dev\Projects
+```
+
+contains a symbolic link pointing to the WSL project directory.
+
+Direct access through:
+
+```text
+/mnt/d/Dev/Projects
+```
+
+caused an `Input/output error`.
+
+The actual project path inside WSL was used instead:
+
+```text
+/home/abdul/Dev/projects/Machine_Learning/olist_postgres_p1
+```
+
+---
+
+### 3. SQLAlchemy dtype Error
+
+An early version of `ingest.py` failed with:
+
+```text
 ValueError:
 The type of customer_id is not a SQLAlchemy type
+```
 
+The issue was caused by passing incompatible type definitions to `pandas.to_sql()`.
 
-Cause:
+The ingestion script was then updated to use actual SQLAlchemy types such as:
 
-The dtype mapping passed to pandas.to_sql() was incorrect.
-
-
-Solution:
-
-The ingestion script was updated to use actual SQLAlchemy types such
-as:
-
+```text
 Text
 BigInteger
 Float
 DateTime
+```
 
+After the fix, all tables loaded successfully.
 
-After the fix, all tables were successfully loaded.
+---
 
+## What I Practiced
 
-------------------------------------------------------------
+This task provided hands-on practice with:
 
-Problem 2:
+- Docker fundamentals.
+- Running PostgreSQL locally.
+- PostgreSQL database connections.
+- Python database connectivity.
+- Pandas CSV ingestion.
+- SQLAlchemy.
+- SQL `SELECT`.
+- SQL `JOIN`.
+- Relational table relationships.
+- Row-count validation.
+- Data integrity validation.
+- Data quality investigation.
+- Basic data leakage awareness.
+- Git and GitHub workflow.
 
-order_reviews contains duplicate review_id values.
+---
 
-Result:
+## Final Task Checklist
 
-814 duplicate review IDs.
+- [x] Dataset downloaded and available locally.
+- [x] CSV files verified.
+- [x] PostgreSQL running locally.
+- [x] PostgreSQL running inside Docker.
+- [x] Database created.
+- [x] All 9 tables loaded.
+- [x] Row counts verified.
+- [x] Tables queried successfully.
+- [x] `orders` → `customers` JOIN tested.
+- [x] `orders` → `order_items` JOIN tested.
+- [x] Core relationships validated.
+- [x] Data quality observation documented.
+- [x] Delivery target logic understood.
+- [x] No unnecessary EDA performed.
+- [x] Python ingestion automated.
+- [x] SQL validation script created.
+- [x] Task requirements completed.
 
+---
 
-Decision:
+## Final Status
 
-The records were kept unchanged and the issue was documented for
-future data quality work.
+### Task 1 — COMPLETED
 
+The Olist dataset is successfully available in a local PostgreSQL database running through Docker.
 
-============================================================
-21. FINAL TASK CHECKLIST
-============================================================
-
-[✓] Dataset downloaded and available locally
-
-[✓] CSV files verified
-
-[✓] PostgreSQL running locally
-
-[✓] PostgreSQL running inside Docker
-
-[✓] Database created
-
-[✓] All 9 tables loaded
-
-[✓] Row counts verified
-
-[✓] Tables queried successfully
-
-[✓] JOIN between orders and customers tested
-
-[✓] JOIN between orders and order_items tested
-
-[✓] Core relationships validated
-
-[✓] Data quality observation documented
-
-[✓] Delivery target logic understood
-
-[✓] No unnecessary EDA performed
-
-[✓] Ingestion automated with Python
-
-[✓] SQL validation script created
-
-[✓] Task requirements completed
-
-
-============================================================
-22. FINAL STATUS
-============================================================
-
-TASK 1 STATUS: COMPLETED
-
-
-The Olist dataset is now available in a local PostgreSQL database
-running through Docker.
-
-The database can be queried successfully, the main table
-relationships have been tested and validated, and the future machine
-learning problem has been understood.
+The database can be queried successfully, the main table relationships have been tested and validated, and the future machine learning problem has been understood.
 
 The project is ready for the next MLOps training task.
-
-
-============================================================
-END OF TASK 1 DOCUMENTATION
-============================================================
