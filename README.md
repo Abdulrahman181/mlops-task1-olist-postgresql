@@ -4,7 +4,11 @@
 
 A hands-on MLOps task focused on understanding the Olist e-commerce dataset, loading the data into a relational PostgreSQL database, and validating the database and table relationships.
 
-**Status: Completed**
+**Status: Previously reported completed; not independently reproducible from this checkout.**
+
+The checked-in repository does not contain the source CSV files or a database
+snapshot. Counts and validation outcomes below are historical results reported
+by the project author; they have not been re-run as part of this checkout.
 
 ---
 
@@ -45,6 +49,9 @@ olist_postgres_p1/
 ```
 
 > The raw CSV dataset is intentionally excluded from GitHub through `.gitignore`.
+> No CSV files are included in this checkout. Obtain the dataset separately and
+> place the expected files in `archive/` before running ingestion; do not commit
+> the data to this repository.
 
 ---
 
@@ -201,6 +208,12 @@ SQLAlchemy
 psycopg2-binary
 ```
 
+Install the pinned runtime dependencies with:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
 ---
 
 ## PostgreSQL Setup
@@ -262,8 +275,36 @@ The ingestion script:
 
 ### Run Ingestion
 
+Set `DATABASE_URL` in the shell to a PostgreSQL SQLAlchemy URL. URL-encode any
+reserved characters in the password, and do not put real credentials in source
+control. For example, replace the placeholder below with your own URL-encoded
+password:
+
+```bash
+export DATABASE_URL='postgresql+psycopg2://olist_user:URL_ENCODED_PASSWORD@localhost:5432/olist_db'
+```
+
+The first run creates missing tables and fails rather than dropping a table that
+already exists. To intentionally replace the nine target tables (and overwrite
+their contents), pass `--replace-existing`:
+
 ```bash
 python scripts/ingest.py
+```
+
+```bash
+python scripts/ingest.py --replace-existing
+```
+
+Replacement is destructive and table loading is not one atomic transaction. If
+a load is interrupted, inspect the database before choosing whether to rerun
+with the replacement option.
+
+Run the database-independent unit tests and a Python syntax check with:
+
+```bash
+python -m unittest discover -s tests
+python -m py_compile scripts/ingest.py tests/test_ingest.py
 ```
 
 Successful execution ends with:
@@ -292,9 +333,11 @@ sellers
 
 ---
 
-## Dataset Row Counts
+## Previously Reported Dataset Row Counts (Not Reverified)
 
-The final row counts loaded into PostgreSQL are:
+The following counts were reported from the author's earlier local database
+load. The dataset and database are not included here, so these counts have not
+been independently reproduced from this checkout:
 
 | Table | Rows |
 |---|---:|
@@ -308,7 +351,8 @@ The final row counts loaded into PostgreSQL are:
 | `sellers` | 3,095 |
 | `product_category_translation` | 71 |
 
-All loaded row counts were verified after ingestion.
+The earlier project report states that the row counts were checked after
+ingestion.
 
 ---
 
@@ -409,7 +453,7 @@ order_items.order_id
 
 ---
 
-## Relationship Validation Results
+## Previously Reported Relationship Validation Results
 
 The following integrity checks were performed:
 
@@ -421,7 +465,8 @@ The following integrity checks were performed:
 | Order items without sellers | `0` |
 | Payments without orders | `0` |
 
-The tested core relationships are therefore consistent.
+The earlier project report states that these checks returned zero missing
+relationships; this checkout does not contain the data needed to repeat them.
 
 ---
 
@@ -454,7 +499,7 @@ This issue is therefore documented for possible investigation in a future task.
 
 ---
 
-## Delivery Data Validation
+## Previously Reported Delivery Data Validation
 
 The validation queries produced the following results:
 
@@ -465,7 +510,8 @@ The validation queries produced the following results:
 | Late delivered orders | 7,826 |
 | On-time delivered orders | 88,644 |
 
-These results confirm that the dataset contains the information required to construct the future delivery-delay classification target.
+These are historical results reported by the project author, not a validation
+performed from this checkout. The source dataset is required to reproduce them.
 
 ---
 
@@ -543,10 +589,10 @@ Direct access through:
 
 caused an `Input/output error`.
 
-The actual project path inside WSL was used instead:
+The project was run from its actual WSL project directory instead:
 
 ```text
-/home/abdul/Dev/projects/Machine_Learning/olist_postgres_p1
+<WSL project directory>
 ```
 
 ---
@@ -598,6 +644,10 @@ This task provided hands-on practice with:
 
 ## Final Task Checklist
 
+The checkmarks below are the author's historical task report. They do not
+indicate that a database load or validation was performed from this checkout;
+the CSV source files and a database snapshot are absent.
+
 - [x] Dataset downloaded and available locally.
 - [x] CSV files verified.
 - [x] PostgreSQL running locally.
@@ -620,10 +670,15 @@ This task provided hands-on practice with:
 
 ## Final Status
 
-### Task 1 — COMPLETED
+### Task 1 — Historically Reported as Completed
 
-The Olist dataset is successfully available in a local PostgreSQL database running through Docker.
+The project author reported that the Olist dataset was available in a local
+PostgreSQL database running through Docker.
 
-The database can be queried successfully, the main table relationships have been tested and validated, and the future machine learning problem has been understood.
+Those local database results cannot be verified from this checkout: the raw
+CSV files and database are not included. Obtain the data and configure a local
+PostgreSQL database to reproduce the ingestion and SQL checks. Model performance
+was not evaluated as part of Task 1.
 
-The project is ready for the next MLOps training task.
+The project documents the next MLOps training task, subject to reproducing the
+data setup where needed.

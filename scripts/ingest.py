@@ -1,13 +1,9 @@
+import argparse
 import os
 import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.types import Text, BigInteger, Float, DateTime
 
-
-DATABASE_URL = (
-    "postgresql+psycopg2://"
-    "olist_user:olist_password@localhost:5432/olist_db"
-)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CSV_DIR = os.path.join(BASE_DIR, "archive")
@@ -27,8 +23,10 @@ TABLE_MAP = {
 TEXT_COLUMNS = {
     "customer_id",
     "customer_unique_id",
+    "customer_zip_code_prefix",
     "customer_city",
     "customer_state",
+    "geolocation_zip_code_prefix",
     "geolocation_city",
     "geolocation_state",
     "order_id",
@@ -44,8 +42,6 @@ TEXT_COLUMNS = {
 }
 
 INTEGER_COLUMNS = {
-    "customer_zip_code_prefix",
-    "geolocation_zip_code_prefix",
     "order_item_id",
     "payment_sequential",
     "payment_installments",
@@ -127,6 +123,16 @@ def validate_source_files():
         )
 
 
+def get_database_url():
+    database_url = os.environ.get("DATABASE_URL", "").strip()
+    if not database_url:
+        raise RuntimeError(
+            "DATABASE_URL is not set. Set it to a PostgreSQL SQLAlchemy URL; "
+            "do not commit database credentials."
+        )
+    return database_url
+
+
 def test_connection(engine):
     with engine.connect() as connection:
         version = connection.execute(text("SELECT version();")).scalar()
@@ -136,14 +142,23 @@ def test_connection(engine):
     print()
 
 
-def load_table(engine, filename, table_name):
+def load_table(engine, filename, table_name, replace_existing=False):
     file_path = os.path.join(CSV_DIR, filename)
 
     print("=" * 60)
     print(f"Loading: {filename}")
     print(f"Target table: {table_name}")
 
-    df = pd.read_csv(file_path, low_memory=False)
+    # ZIP-code prefixes are identifiers, not quantities. Keep them as text so
+    # pandas does not discard leading zeroes during CSV type inference.
+    df = pd.read_csv(
+        file_path,
+        low_memory=False,
+        dtype={
+            "customer_zip_code_prefix": "string",
+            "geolocation_zip_code_prefix": "string",
+        },
+    )
 
     print(f"Rows read: {len(df):,}")
     print(f"Columns: {len(df.columns)}")
@@ -154,7 +169,7 @@ def load_table(engine, filename, table_name):
     df.to_sql(
         table_name,
         engine,
-        if_exists="replace",
+        if_exists="replace" if replace_existing else "fail",
         index=False,
         dtype=dtype,
         chunksize=5000,
@@ -177,6 +192,14 @@ def load_table(engine, filename, table_name):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Load Olist CSV files into PostgreSQL.")
+    parser.add_argument(
+        "--replace-existing",
+        action="store_true",
+        help="drop and recreate matching tables; this overwrites their existing data",
+    )
+    args = parser.parse_args()
+
     print("=" * 60)
     print("Olist Dataset -> PostgreSQL Ingestion")
     print("=" * 60)
@@ -187,21 +210,27 @@ def main():
     validate_source_files()
 
     engine = create_engine(
-        DATABASE_URL,
+        get_database_url(),
         pool_pre_ping=True,
     )
 
-    test_connection(engine)
+    try:
+        test_connection(engine)
 
-    for filename, table_name in TABLE_MAP.items():
-        load_table(engine, filename, table_name)
+        for filename, table_name in TABLE_MAP.items():
+            load_table(
+                engine,
+                filename,
+                table_name,
+                replace_existing=args.replace_existing,
+            )
 
-    print()
-    print("=" * 60)
-    print("All tables loaded successfully.")
-    print("=" * 60)
-
-    engine.dispose()
+        print()
+        print("=" * 60)
+        print("All tables loaded successfully.")
+        print("=" * 60)
+    finally:
+        engine.dispose()
 
 
 if __name__ == "__main__":
