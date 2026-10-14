@@ -4,7 +4,11 @@
 
 A hands-on MLOps task focused on understanding the Olist e-commerce dataset, loading the data into a relational PostgreSQL database, and validating the database and table relationships.
 
-**Status: Completed**
+**Status: Engineering-audited; runtime ingestion requires local CSV files and PostgreSQL**
+
+> This repository contains the ingestion and validation code, not the Olist data. The
+> `archive/` directory is intentionally absent from Git. No database, dataset, model,
+> notebook, or generated artifact is assumed to exist in a fresh clone.
 
 ---
 
@@ -33,12 +37,18 @@ olist_postgres_p1/
 │   └── CSV dataset files
 │
 ├── scripts/
-│   └── ingest.py
+│   ├── ingest.py
+│   └── __init__.py
 │
 ├── sql/
 │   └── validation.sql
 │
 ├── .gitignore
+├── .env.example
+├── pyproject.toml
+├── requirements.txt
+├── tests/
+│   └── test_ingest.py
 ├── MLOps_Task1.pdf
 ├── Olist_Dataset_Introduction.pdf
 └── README.md
@@ -193,19 +203,18 @@ A dedicated virtual environment was created:
 .venv/
 ```
 
-Installed packages include:
+Install the pinned dependency ranges from the repository:
 
-```text
-pandas
-SQLAlchemy
-psycopg2-binary
+```bash
+python -m pip install -r requirements.txt
 ```
 
 ---
 
 ## PostgreSQL Setup
 
-PostgreSQL was run using Docker.
+The original task used PostgreSQL in Docker. This clone does not include a Docker
+Compose file or a database; provide your own PostgreSQL instance and connection URL.
 
 ### Container
 
@@ -231,13 +240,9 @@ olist_user
 5432
 ```
 
-The database was successfully verified with:
-
-```bash
-docker ps
-```
-
-and a PostgreSQL connection test.
+The ingestion command performs a `SELECT version()` connection check before writing.
+Do not put credentials in source code; set `OLIST_DATABASE_URL` (or pass
+`--database-url`). `.env.example` is a template only.
 
 ---
 
@@ -258,14 +263,21 @@ The ingestion script:
 5. Converts important columns to appropriate data types.
 6. Loads the data into PostgreSQL.
 7. Verifies the number of rows after insertion.
-8. Reports the loading status of every table.
+8. Loads all tables in one transaction and reports the status of every table.
+
+It does not download data, create synthetic rows, or continue with missing files. It
+also rejects non-empty values that cannot be parsed as the configured numeric/datetime
+type and checks the expected source columns.
 
 ### Run Ingestion
 
 ```bash
-python scripts/ingest.py
+export OLIST_DATABASE_URL='postgresql+psycopg2://user:password@localhost:5432/olist_db'
+python scripts/ingest.py --csv-dir /absolute/path/to/archive
 ```
 
+The command exits `2` when required CSV files are absent, `1` for configuration,
+database, schema, or load errors, and `0` only after all row-count checks succeed.
 Successful execution ends with:
 
 ```text
@@ -294,7 +306,8 @@ sellers
 
 ## Dataset Row Counts
 
-The final row counts loaded into PostgreSQL are:
+The following counts are the original project notes, not a result produced in this
+fresh checkout. Treat them as expectations to verify only after a real ingestion run:
 
 | Table | Rows |
 |---|---:|
@@ -308,7 +321,8 @@ The final row counts loaded into PostgreSQL are:
 | `sellers` | 3,095 |
 | `product_category_translation` | 71 |
 
-All loaded row counts were verified after ingestion.
+No local CSV files or PostgreSQL database are included in this repository, so these
+counts were **not re-verified during the engineering audit**.
 
 ---
 
@@ -527,10 +541,10 @@ The PostgreSQL container was then created correctly from WSL, where the Linux sy
 
 ### 2. WSL and Windows Project Path
 
-The Windows path:
+The original Windows project path:
 
 ```text
-D:\Dev\Projects
+<windows-project-path>
 ```
 
 contains a symbolic link pointing to the WSL project directory.
@@ -538,7 +552,7 @@ contains a symbolic link pointing to the WSL project directory.
 Direct access through:
 
 ```text
-/mnt/d/Dev/Projects
+<wsl-mounted-project-path>
 ```
 
 caused an `Input/output error`.
@@ -546,7 +560,7 @@ caused an `Input/output error`.
 The actual project path inside WSL was used instead:
 
 ```text
-/home/abdul/Dev/projects/Machine_Learning/olist_postgres_p1
+<wsl-project-path>
 ```
 
 ---
@@ -598,32 +612,21 @@ This task provided hands-on practice with:
 
 ## Final Task Checklist
 
-- [x] Dataset downloaded and available locally.
-- [x] CSV files verified.
-- [x] PostgreSQL running locally.
-- [x] PostgreSQL running inside Docker.
-- [x] Database created.
-- [x] All 9 tables loaded.
-- [x] Row counts verified.
-- [x] Tables queried successfully.
-- [x] `orders` → `customers` JOIN tested.
-- [x] `orders` → `order_items` JOIN tested.
-- [x] Core relationships validated.
-- [x] Data quality observation documented.
-- [x] Delivery target logic understood.
-- [x] No unnecessary EDA performed.
-- [x] Python ingestion automated.
-- [x] SQL validation script created.
-- [x] Task requirements completed.
+- [ ] Dataset downloaded and available locally (intentionally absent from Git).
+- [ ] PostgreSQL running and reachable in the current environment.
+- [ ] All 9 tables loaded in the current environment.
+- [ ] Row counts and joins re-verified in the current environment.
+- [x] Python ingestion is automated with explicit configuration and fail-fast checks.
+- [x] SQL validation script includes a required-table preflight and `ON_ERROR_STOP`.
+- [x] Future-target leakage warning is documented; actual delivery fields and reviews
+      are not model features unless the prediction-time policy permits them.
+- [x] Unit tests and static checks are included.
 
 ---
 
-## Final Status
+## Engineering Audit Status
 
-### Task 1 — COMPLETED
-
-The Olist dataset is successfully available in a local PostgreSQL database running through Docker.
-
-The database can be queried successfully, the main table relationships have been tested and validated, and the future machine learning problem has been understood.
-
-The project is ready for the next MLOps training task.
+The repository is **code-ready but runtime-unverified** in a fresh checkout. The audit
+found no Notebook files, model artifacts, API service, or local dataset to execute.
+See `ENGINEERING_REVIEW.md` for the exact checks, changes, limitations, and the
+commands needed to validate against real data and PostgreSQL.

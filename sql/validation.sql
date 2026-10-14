@@ -4,6 +4,33 @@ FROM information_schema.tables
 WHERE table_schema = 'public'
 ORDER BY table_name;
 
+\set ON_ERROR_STOP on
+
+DO $$
+DECLARE
+    missing_tables text;
+BEGIN
+    SELECT string_agg(required_table, ', ' ORDER BY required_table)
+    INTO missing_tables
+    FROM (
+        SELECT unnest(ARRAY[
+            'customers', 'geolocation', 'order_items', 'order_payments',
+            'order_reviews', 'orders', 'product_category_translation',
+            'products', 'sellers'
+        ]) AS required_table
+    ) AS required
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM information_schema.tables AS available
+        WHERE available.table_schema = 'public'
+          AND available.table_name = required.required_table
+    );
+
+    IF missing_tables IS NOT NULL THEN
+        RAISE EXCEPTION 'Validation stopped: required public tables are missing: %', missing_tables;
+    END IF;
+END $$;
+
 
 SELECT
     'customers' AS table_name,
